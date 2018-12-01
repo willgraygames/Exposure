@@ -8,7 +8,6 @@ public class PlayerMaster : MonoBehaviour
 {
 
     //Current target variables
-    public Image targetHealth;                  //Reference to current target's heatlh bar
     public GameObject cursor;                   //Reference to player's cursor
     public Text interactText;                   //Reference to the text naming the player's current target
     public float interactRange;                 //The maximum range from the player to a target to be able to interact with it
@@ -17,12 +16,14 @@ public class PlayerMaster : MonoBehaviour
 
     //Movement variables
     public float speed;                         //Speed at which the Player moves
-    public float jumpForce;                     //Force with which the Player jumps - determines jump height
-    public LayerMask heightMask;                //LayerMask to tell the player's capsule collider what is ground and what is not for the purposes of being grounded
     Vector3 movement;                           //Player's movement value stored in a Vector3
     CapsuleCollider myCollider;                 //Reference to the Player's capsule collider
     Rigidbody rb3d;                             //Reference to the Player's rigidbody
     public LayerMask dropsLayer;
+
+    //Inventory
+    List<GameObject> myInventory = new List<GameObject>();
+    GameObject currentHoverObject;
     
 
     void Awake()
@@ -49,17 +50,43 @@ public class PlayerMaster : MonoBehaviour
         if (Physics.Raycast(myRay, out hit, interactRange))
         {
             Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward));
-            if (hit.collider.gameObject.tag == "Creature")
+            if (hit.collider.gameObject.tag == "Pit")
             {
                 print("hit something");
-                interactText.text = hit.collider.gameObject.name;
+                interactText.text = "Feed the Pit";
                 cursor.SetActive(true);
+                myInventory.RemoveAll(item => item == null);
+                if (Input.GetMouseButtonDown(0) && myInventory.Count > 0)
+                {
+                    //Feed the pit action
+                    print("shit yea go pit boi");
+                }
+            } else if (hit.collider.tag == "Fire")
+            {
+                interactText.text = "Feed the Fire";
+                cursor.SetActive(true);
+                myInventory.RemoveAll(item => item == null);
+                if (Input.GetMouseButtonDown(0) && myInventory.Count > 0)
+                {
+                    //Feed the fire action
+                    print("shit yea feed that fire boi");
+                }
+            } else if (hit.collider.gameObject.tag == "Item")
+            {
+                interactText.text = hit.collider.gameObject.GetComponent<Item>().itemName;
+                cursor.SetActive(true);
+                currentHoverObject = hit.collider.gameObject;
+                if (Input.GetMouseButtonDown(0))
+                {
+                    AddToInventory(hit.collider.gameObject);
+                }
             }
         }
         else
         {
             interactText.text = "";
             cursor.SetActive(false);
+            currentHoverObject = null;
         }
     }
 
@@ -72,12 +99,6 @@ public class PlayerMaster : MonoBehaviour
 
         //Calls the MovePlayer function with horizontal and vertical as parameters
         MovePlayer(horizontal, vertical);
-
-        //If the player is grounded and presses the spacebar, call the Jump function
-        if (Input.GetButtonDown("Jump") && isGrounded())
-        {
-            Jump();
-        }
     }
 
     //Function to handle moving the player. Takes two float values for the horizontal and vertical inputs as parameters
@@ -93,17 +114,12 @@ public class PlayerMaster : MonoBehaviour
         rb3d.MovePosition(transform.position + movement);
     }
 
-    //Function to handle the player jumping
-    void Jump()
+    public void AddToInventory(GameObject item)
     {
-        //Adds a force from the player in the up direction multiplied by the jumpForce variable
-        rb3d.AddForce(transform.up * jumpForce);
-    }
-
-    //Boolean function to determine if the player is grounded. 
-    bool isGrounded()
-    {
-        //Checks a capsule around the player equal to the player's capsule collider offset down to check if the ground is beneath the player. If it is, isGrounded returns true.
-        return Physics.CheckCapsule(myCollider.bounds.center, new Vector3(myCollider.bounds.center.x, myCollider.bounds.center.y - 1f, myCollider.bounds.center.z), 0.18f, heightMask.value);
+        myInventory.Add(item);
+        item.SetActive(false);
+        currentHoverObject = null;
+        interactText.text= "";
+        cursor.SetActive(false);
     }
 }
